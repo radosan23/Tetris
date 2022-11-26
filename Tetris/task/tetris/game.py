@@ -2,9 +2,9 @@ import numpy as np
 
 
 class Block:
-    def __init__(self, b_type):
+    def __init__(self, b_type, b_state=0):
         self.type = b_type
-        self.state = 0
+        self.state = b_state
         self.list = self.set_list()
         self.array = self.set_array()
 
@@ -27,7 +27,7 @@ class Block:
             return [[]]
 
     def set_array(self):
-        ar = np.array([['0 ' if (row * 4 + col in self.list[self.state]) else '_ ' for col in range(4)]
+        ar = np.array([['0 ' if (row * 4 + col in self.list[self.state]) else '- ' for col in range(4)]
                        for row in range(4)])
         return ar
 
@@ -37,18 +37,19 @@ class Block:
 
     def print_block(self):
         print()
-        for row in range(len(self.array)):
-            print(''.join(x for x in self.array[row]))
+        for row in self.array:
+            print(''.join(cell for cell in row))
 
 
 def main():
-    block_type = input('Choose piece: ')
+    block_type = input()
     empty = Block('')
     block = Block(block_type)
     empty.print_block()
     block.print_block()
-    block.rotate_block()
-    block.print_block()
+    for _ in range(4):
+        block.rotate_block()
+        block.print_block()
 
 
 if __name__ == '__main__':
