@@ -36,17 +36,23 @@ class Board:
     def __init__(self, size):
         self.m = size[0]
         self.n = size[1]
+        self.blocks = []
         self.curr_block = Block('')
         self.array = None
+        self.frozen = []
         self.set_array()
 
     def set_array(self):
-        self.array = np.array([['0 ' if (row * self.m + col in self.curr_block.coord[self.curr_block.state]) else '- '
+        all_blocks = list(self.frozen)
+        if not self.curr_block.static:
+            all_blocks.extend(self.curr_block.coord[self.curr_block.state])
+        self.array = np.array([['0 ' if (row * self.m + col in all_blocks) else '- '
                               for col in range(self.m)]
                               for row in range(self.n)])
 
-    def add_block(self, block):
-        self.curr_block = block
+    def add_block(self):
+        self.blocks.append(Block(input()))
+        self.curr_block = self.blocks[-1]
         self.set_array()
 
     def move_block(self, cmd):
@@ -59,7 +65,14 @@ class Board:
                 self.curr_block.rotate_block()
             self.curr_block.move_down()
             self.set_array()
-            self.check_d_border()
+
+    def remove_rows(self):
+        for row in range(len(self.array)):
+            if len([cell for cell in self.array[row] if cell == '0 ']) == self.m:
+                for x in range(self.m):
+                    self.frozen.remove(row * self.m + x)
+                self.frozen = [x + self.m if (x // self.m < row) else x for x in self.frozen]
+        self.set_array()
 
     def restricted(self, cmd):
         b_field = self.curr_block.coord[self.curr_block.state]
@@ -75,28 +88,41 @@ class Board:
 
     def check_d_border(self):
         b_field = self.curr_block.coord[self.curr_block.state]
-        if any(x for x in b_field if x // self.m == self.n - 1):
+        below_piece = [x + self.m for x in b_field]
+        if [x for x in b_field if x // self.m == self.n - 1] or [x for x in below_piece if x in self.frozen]:
             self.curr_block.static = True
+            self.frozen.extend(b_field)
 
     def print_board(self):
-        print()
         for row in self.array:
             print(''.join(cell for cell in row).strip())
+        print()
+
+    def game_over(self):
+        if [x for x in self.frozen if x < self.m]:
+            print('Game Over!')
+            return True
+        return False
 
 
 def main():
-    block_type = input()
     size = [int(x) for x in input().split()]
-    block = Block(block_type)
     board = Board(size)
     board.print_board()
-    board.add_block(block)
-    board.print_board()
     while True:
+        if board.game_over():
+            break
         cmd = input()
         if cmd == 'exit':
             break
-        board.move_block(cmd)
+        elif cmd == 'break':
+            board.remove_rows()
+        elif cmd == 'piece':
+            board.add_block()
+            board.check_d_border()
+        else:
+            board.move_block(cmd)
+            board.check_d_border()
         board.print_board()
 
 
