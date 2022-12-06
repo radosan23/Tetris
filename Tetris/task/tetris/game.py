@@ -2,9 +2,8 @@ import numpy as np
 
 
 class Block:
-    width = 10
 
-    def __init__(self, b_type, b_state=0):
+    def __init__(self, b_type, width, b_state=0):
         types = {'O': [[4, 14, 15, 5]],
                  'I': [[4, 14, 24, 34], [3, 4, 5, 6]],
                  'S': [[5, 4, 14, 13], [4, 14, 15, 25]],
@@ -16,6 +15,7 @@ class Block:
         self.type = b_type
         self.state = b_state
         self.coord = types[self.type]
+        self.width = width
         self.static = False
 
     def rotate_block(self):
@@ -28,7 +28,7 @@ class Block:
         self.coord = [[x - 1 for x in st] for st in self.coord]
 
     def move_down(self):
-        self.coord = [[x + Block.width for x in st] for st in self.coord]
+        self.coord = [[x + self.width for x in st] for st in self.coord]
 
 
 class Board:
@@ -37,9 +37,9 @@ class Board:
         self.m = size[0]
         self.n = size[1]
         self.blocks = []
-        self.curr_block = Block('')
+        self.curr_block = Block('', self.m)
         self.array = None
-        self.frozen = []
+        self.frozen = set()
         self.set_array()
 
     def set_array(self):
@@ -51,7 +51,7 @@ class Board:
                               for row in range(self.n)])
 
     def add_block(self):
-        self.blocks.append(Block(input()))
+        self.blocks.append(Block(input(), self.m))
         self.curr_block = self.blocks[-1]
         self.set_array()
 
@@ -63,15 +63,16 @@ class Board:
                 self.curr_block.move_left()
             elif cmd == 'rotate' and not self.restricted(cmd):
                 self.curr_block.rotate_block()
+            self.check_d_border()
             self.curr_block.move_down()
             self.set_array()
 
     def remove_rows(self):
-        for row in range(len(self.array)):
+        for row in range(self.n):
             if len([cell for cell in self.array[row] if cell == '0 ']) == self.m:
                 for x in range(self.m):
                     self.frozen.remove(row * self.m + x)
-                self.frozen = [x + self.m if (x // self.m < row) else x for x in self.frozen]
+                self.frozen = {x + self.m if (x // self.m < row) else x for x in self.frozen}
         self.set_array()
 
     def restricted(self, cmd):
@@ -91,7 +92,7 @@ class Board:
         below_piece = [x + self.m for x in b_field]
         if [x for x in b_field if x // self.m == self.n - 1] or [x for x in below_piece if x in self.frozen]:
             self.curr_block.static = True
-            self.frozen.extend(b_field)
+            self.frozen.update(b_field)
 
     def print_board(self):
         for row in self.array:
@@ -119,7 +120,6 @@ def main():
             board.remove_rows()
         elif cmd == 'piece':
             board.add_block()
-            board.check_d_border()
         else:
             board.move_block(cmd)
             board.check_d_border()
