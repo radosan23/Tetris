@@ -1,4 +1,7 @@
+from collections import deque
 import numpy as np
+from os import system
+import random
 
 
 class Block:
@@ -32,15 +35,29 @@ class Block:
 
 
 class Board:
+    symbols = ['O', 'I', 'S', 'Z', 'L', 'J', 'T']
 
     def __init__(self, size):
-        self.m = size[0]
-        self.n = size[1]
+        self.m = 10
+        self.n = size
         self.blocks = []
         self.curr_block = Block('', self.m)
         self.array = None
         self.frozen = set()
         self.set_array()
+        self.queue = deque(random.choices(Board.symbols, k=2))
+        self.changes = 3
+
+    @staticmethod
+    def get_height():
+        while True:
+            u_input = input('enter board height (6-100): ')
+            try:
+                if int(u_input) in range(6, 101):
+                    return int(u_input)
+            except ValueError:
+                pass
+            print('wrong value: enter integer from 6 to 100: ')
 
     def set_array(self):
         all_blocks = list(self.frozen)
@@ -51,19 +68,20 @@ class Board:
                               for row in range(self.n)])
 
     def add_block(self):
-        self.blocks.append(Block(input(), self.m))
+        b_type = self.queue.popleft()
+        self.queue.append(random.choice(Board.symbols))
+        self.blocks.append(Block(b_type, self.m))
         self.curr_block = self.blocks[-1]
         self.set_array()
 
     def move_block(self, cmd):
         if not self.curr_block.static:
-            if cmd == 'right' and not self.restricted(cmd):
+            if cmd == 'r' and not self.restricted(cmd):
                 self.curr_block.move_right()
-            elif cmd == 'left' and not self.restricted(cmd):
+            elif cmd == 'l' and not self.restricted(cmd):
                 self.curr_block.move_left()
-            elif cmd == 'rotate' and not self.restricted(cmd):
+            elif cmd == 'o' and not self.restricted(cmd):
                 self.curr_block.rotate_block()
-            self.check_d_border()
             self.curr_block.move_down()
             self.set_array()
 
@@ -78,11 +96,11 @@ class Board:
     def restricted(self, cmd):
         b_field = self.curr_block.coord[self.curr_block.state]
         next_rot = self.curr_block.coord[(self.curr_block.state + 1) % len(self.curr_block.coord)]
-        if cmd == 'right' and any(x for x in b_field if x % self.m == self.m - 1):
+        if cmd == 'r' and any(x for x in b_field if x % self.m == self.m - 1):
             return True
-        if cmd == 'left' and any(x for x in b_field if x % self.m == 0):
+        if cmd == 'l' and any(x for x in b_field if x % self.m == 0):
             return True
-        if cmd == 'rotate' and any(x for x in next_rot if x % self.m == self.m - 1) \
+        if cmd == 'o' and any(x for x in next_rot if x % self.m == self.m - 1) \
                 and any(x for x in next_rot if x % self.m == 0):
             return True
         return False
@@ -94,7 +112,17 @@ class Board:
             self.curr_block.static = True
             self.frozen.update(b_field)
 
+    def change_next(self):
+        if self.changes > 0:
+            self.queue.popleft()
+            self.queue.append(random.choice(Board.symbols))
+            self.changes -= 1
+
     def print_board(self):
+        system('cls')
+        print()
+        print('next block: ', self.queue[0], '    changes: ', self.changes)
+        print()
         for row in self.array:
             print(''.join(cell for cell in row).strip())
         print()
@@ -102,26 +130,31 @@ class Board:
     def game_over(self):
         if [x for x in self.frozen if x < self.m]:
             print('Game Over!')
+            input('press any key')
             return True
         return False
 
 
 def main():
-    size = [int(x) for x in input().split()]
+    size = Board.get_height()
     board = Board(size)
+    board.add_block()
     board.print_board()
     while True:
         if board.game_over():
             break
+        print('choose: x (exit) -- l (left) -- r (right) -- o (rotate) -- c (change)')
         cmd = input()
-        if cmd == 'exit':
+        if cmd == 'x':
             break
-        elif cmd == 'break':
-            board.remove_rows()
-        elif cmd == 'piece':
-            board.add_block()
+        if cmd == 'c':
+            board.change_next()
         else:
             board.move_block(cmd)
+            board.check_d_border()
+        if board.curr_block.static:
+            board.remove_rows()
+            board.add_block()
             board.check_d_border()
         board.print_board()
 
