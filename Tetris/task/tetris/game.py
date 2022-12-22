@@ -47,6 +47,8 @@ class Board:
         self.set_array()
         self.queue = deque(random.choices(Board.symbols, k=2))
         self.changes = 3
+        self.auto_fall = False
+        self.rem_rows = 0
 
     @staticmethod
     def get_height():
@@ -76,13 +78,16 @@ class Board:
 
     def move_block(self, cmd):
         if not self.curr_block.static:
+            if not self.auto_fall:
+                self.curr_block.move_down()
             if cmd == 'r' and not self.restricted(cmd):
                 self.curr_block.move_right()
             elif cmd == 'l' and not self.restricted(cmd):
                 self.curr_block.move_left()
             elif cmd == 'o' and not self.restricted(cmd):
                 self.curr_block.rotate_block()
-            self.curr_block.move_down()
+            elif cmd == 'd' and self.auto_fall:
+                self.curr_block.move_down()
             self.set_array()
 
     def remove_rows(self):
@@ -96,12 +101,15 @@ class Board:
     def restricted(self, cmd):
         b_field = self.curr_block.coord[self.curr_block.state]
         next_rot = self.curr_block.coord[(self.curr_block.state + 1) % len(self.curr_block.coord)]
-        if cmd == 'r' and any(x for x in b_field if x % self.m == self.m - 1):
+        if cmd == 'r' and (any(x for x in b_field if x % self.m == self.m - 1)
+                           or any(x for x in b_field if x+1 in self.frozen)):
             return True
-        if cmd == 'l' and any(x for x in b_field if x % self.m == 0):
+        if cmd == 'l' and (any(x for x in b_field if x % self.m == 0)
+                           or any(x for x in b_field if x-1 in self.frozen)):
             return True
-        if cmd == 'o' and any(x for x in next_rot if x % self.m == self.m - 1) \
-                and any(x for x in next_rot if x % self.m == 0):
+        if cmd == 'o' and (any(x for x in next_rot if x % self.m == self.m - 1)
+                           and any(x for x in next_rot if x % self.m == 0)
+                           or any(x for x in next_rot if x in self.frozen)):
             return True
         return False
 
@@ -130,7 +138,7 @@ class Board:
     def game_over(self):
         if [x for x in self.frozen if x < self.m]:
             print('Game Over!')
-            input('press any key')
+            input('press enter')
             return True
         return False
 
