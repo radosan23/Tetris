@@ -20,6 +20,7 @@ class Block:
         self.coord = types[self.type]
         self.width = width
         self.static = False
+        self.freezing = False
 
     def rotate_block(self):
         self.state = (self.state + 1) % len(self.coord)
@@ -78,7 +79,7 @@ class Board:
 
     def move_block(self, cmd):
         if not self.curr_block.static:
-            if not self.auto_fall:
+            if not self.auto_fall and not self.curr_block.freezing:
                 self.curr_block.move_down()
             if cmd == 'r' and not self.restricted(cmd):
                 self.curr_block.move_right()
@@ -86,7 +87,7 @@ class Board:
                 self.curr_block.move_left()
             elif cmd == 'o' and not self.restricted(cmd):
                 self.curr_block.rotate_block()
-            elif cmd == 'd' and self.auto_fall:
+            elif cmd == 'd' and self.auto_fall and not self.curr_block.freezing:
                 self.curr_block.move_down()
             self.set_array()
 
@@ -117,8 +118,12 @@ class Board:
         b_field = self.curr_block.coord[self.curr_block.state]
         below_piece = [x + self.m for x in b_field]
         if [x for x in b_field if x // self.m == self.n - 1] or [x for x in below_piece if x in self.frozen]:
-            self.curr_block.static = True
-            self.frozen.update(b_field)
+            if self.curr_block.freezing:
+                self.curr_block.static = True
+                self.frozen.update(b_field)
+            self.curr_block.freezing = True
+        else:
+            self.curr_block.freezing = False
 
     def change_next(self):
         if self.changes > 0:
