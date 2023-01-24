@@ -48,8 +48,9 @@ class Board:
         self.set_array()
         self.queue = deque(random.choices(Board.symbols, k=2))
         self.changes = 3
-        self.auto_fall = False
+        self.autodown = False
         self.rem_rows = 0
+        self.g_over = False
 
     @staticmethod
     def get_height():
@@ -79,7 +80,7 @@ class Board:
 
     def move_block(self, cmd):
         if not self.curr_block.static:
-            if not self.auto_fall and not self.curr_block.freezing:
+            if not self.autodown and not self.curr_block.freezing:
                 self.curr_block.move_down()
             if cmd == 'r' and not self.restricted(cmd):
                 self.curr_block.move_right()
@@ -87,13 +88,14 @@ class Board:
                 self.curr_block.move_left()
             elif cmd == 'o' and not self.restricted(cmd):
                 self.curr_block.rotate_block()
-            elif cmd == 'd' and self.auto_fall and not self.curr_block.freezing:
+            elif cmd == 'd' and self.autodown and not self.curr_block.freezing:
                 self.curr_block.move_down()
             self.set_array()
 
     def remove_rows(self):
         for row in range(self.n):
             if len([cell for cell in self.array[row] if cell == '0 ']) == self.m:
+                self.rem_rows += 1
                 for x in range(self.m):
                     self.frozen.remove(row * self.m + x)
                 self.frozen = {x + self.m if (x // self.m < row) else x for x in self.frozen}
